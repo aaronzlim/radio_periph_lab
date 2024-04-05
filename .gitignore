@@ -1,0 +1,10 @@
+vivado/
+.Xil/
+**/*.dcp
+**/*.veo
+**/*.vho
+**/*.mif
+**/cmodel/
+**/synth/
+**/demo_tb/
+**/sim/
