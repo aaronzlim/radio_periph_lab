@@ -61,7 +61,7 @@ void print_benchmark(volatile unsigned int *periph_base)
         stop_time = *(periph_base+RADIO_TUNER_TIMER_REG_OFFSET);
     printf("Elapsed time in clocks = %u\n",stop_time-start_time);
     unsigned int bytes_transferred = (2048*AXI4L_DATA_WIDTH)/8;
-    float time_spent = stop_time - start_time + 1;
+    float time_spent = stop_time - start_time;
 	if (time_spent < 0) {
 		time_spent += 4294967296; // 2^32
 	}
