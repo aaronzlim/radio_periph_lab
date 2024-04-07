@@ -59,15 +59,12 @@ void print_benchmark(volatile unsigned int *periph_base)
     start_time = *(periph_base+RADIO_TUNER_TIMER_REG_OFFSET);
     for (int i=0;i<2048;i++)
         stop_time = *(periph_base+RADIO_TUNER_TIMER_REG_OFFSET);
-    printf("Elapsed time in clocks = %u\n",stop_time-start_time);
     unsigned int bytes_transferred = (2048*AXI4L_DATA_WIDTH)/8;
-    float time_spent = stop_time - start_time;
-	if (time_spent < 0) {
-		time_spent += 4294967296; // 2^32
-	}
-	time_spent = time_spent / CLOCK_RATE_HZ; // convert ticks to seconds
-	float throughput= ((float) bytes_transferred) / (time_spent*1e6); // convert to MB/s
-    printf("You transferred %d bytes of data in %f seconds\n",bytes_transferred,time_spent);
+    unsigned int time_spent = stop_time - start_time;
+	printf("Elapsed time in clocks = %u\n",time_spent);
+    float time_spent_s = (float) time_spent / ((float)CLOCK_RATE_HZ); // convert ticks to seconds
+	float throughput= ((float) bytes_transferred) / (time_spent_s * 1e6); // convert to MB/s
+    printf("You transferred %d bytes of data in %f seconds\n",bytes_transferred,time_spent_s);
     printf("Measured Transfer throughput = %f Mbytes/sec\n",throughput);
 }
 

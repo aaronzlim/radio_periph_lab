@@ -77,6 +77,15 @@ def read_reg(reg: int, num_bytes: int = 2) -> list:
     return rx_data
 
 
+def set_volume(v: int):
+    if v not in range(10):
+        print('Invalid volumd {v}. Must be in range [0,9]')
+        return
+    v = v*6 + 47
+    write_reg(CODEC_LEFT_DAC_VOLUME_REG, v)
+    write_reg(CODEC_RIGHT_DAC_VOLUME_REG, v)
+
+
 def configure_codec():
     write_reg(CODEC_SOFTWARE_RESET_REG, 0x00)
     sleep(0.001)
@@ -105,16 +114,22 @@ def main(args):
 
     if args.init:
         configure_codec()
+
+    if args.volume is not None:
+        print(f'Setting volume to level {args.volume}/9')
+        set_volume(args.volume)
+
+    if args.read_write is None:
         return
 
-    if args.read_write.lower().startswith("w"):
+    if args.read_write.lower().startswith("r"):
+        print(f'Reading register {int2hex(args.register,2)}')
+        read_data = read_reg(args.register, args.data) if args.data > 0 else []
+        print([int2hex(data) for data in read_data])
+
+    elif args.read_write.lower().startswith("w"):
         print(f'Writing {int2hex(args.data,2)} to register {int2hex(args.register,2)}')
         write_reg(args.register, args.data)
-
-    if args.read_write.lower().startswith("r"):
-        print(f'Reading register {int2hex(args.register, args.data)}')
-        read_data = read_reg(args.register, args.data)
-        print([int2hex(data) for data in read_data])
 
 
 if __name__ == '__main__':
@@ -131,16 +146,27 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         'read_write',
+        nargs='?',
         choices=("read", "r", "rd", "write", "w", "wr"),
         help="Specifies a read or write access",
     )
     parser.add_argument(
         'register',
+        nargs='?',
+        default='0x00',
         help="Register to access.",
     )
     parser.add_argument(
         'data',
+        nargs='?',
+        default='0x00',
         help="If writing, the data to write. If reading, the number of bytes to read.",
+    )
+    parser.add_argument(
+        '--volume',
+        type=int,
+        choices=(0,1,2,3,4,5,6,7,8,9),
+        help='If provided, sets the DAC volume to this level. Must be between 0 and 9.'
     )
     args = parser.parse_args()
 
