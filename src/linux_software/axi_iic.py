@@ -5,7 +5,6 @@ import os
 from time import sleep
 
 
-IIC_BASE_ADDR     : int = 0x4160_0000
 IIC_SIZE          : int = 0x0001_0000
 IIC_DYNAMIC_START : int = 0x0000_0100
 IIC_DYNAMIC_STOP  : int = 0x0000_0200
@@ -55,9 +54,9 @@ def osopen(*args, **kwargs):
         os.close(fd)
 
 
-def axi_iic_init() -> None:
+def axi_iic_init(base_addr: int = 0) -> None:
     with osopen('/dev/mem', os.O_RDWR) as fd:
-        axi_iic_mm = mmap.mmap(fd, IIC_SIZE, offset=IIC_BASE_ADDR)
+        axi_iic_mm = mmap.mmap(fd, IIC_SIZE, offset=base_addr)
         axi_iic_registers = AxiIicRegister.from_buffer(axi_iic_mm)
         axi_iic_registers.cr = 0x2
         axi_iic_registers.rx_fifo_pirq = 0xF
@@ -65,32 +64,32 @@ def axi_iic_init() -> None:
         axi_iic_registers.cr = 0x1
 
 
-def soft_reset() -> None:
+def soft_reset(base_addr: int = 0) -> None:
     with osopen('/dev/mem', os.O_RDWR) as fd:
-        axi_iic_mm = mmap.mmap(fd, IIC_SIZE, offset=IIC_BASE_ADDR)
+        axi_iic_mm = mmap.mmap(fd, IIC_SIZE, offset=base_addr)
         axi_iic_registers = AxiIicRegister.from_buffer(axi_iic_mm)
         axi_iic_registers.softr = 0xA
 
 
-def tx_fifo_empty() -> bool:
+def tx_fifo_empty(base_addr: int = 0) -> bool:
     with osopen('/dev/mem', os.O_RDWR) as fd:
-        axi_iic_mm = mmap.mmap(fd, IIC_SIZE, offset=IIC_BASE_ADDR)
+        axi_iic_mm = mmap.mmap(fd, IIC_SIZE, offset=base_addr)
         axi_iic_registers = AxiIicRegister.from_buffer(axi_iic_mm)
         tx_fifo_empty = (axi_iic_registers.sr & IIC_TX_FIFO_EMPTY) >> 7
     return bool(tx_fifo_empty)
 
 
-def rx_fifo_empty() -> bool:
+def rx_fifo_empty(base_addr: int = 0) -> bool:
     with osopen('/dev/mem', os.O_RDWR) as fd:
-        axi_iic_mm = mmap.mmap(fd, IIC_SIZE, offset=IIC_BASE_ADDR)
+        axi_iic_mm = mmap.mmap(fd, IIC_SIZE, offset=base_addr)
         axi_iic_registers = AxiIicRegister.from_buffer(axi_iic_mm)
         rx_fifo_empty = (axi_iic_registers.sr & IIC_RX_FIFO_EMPTY) >> 6
     return bool(rx_fifo_empty)
 
 
-def bus_busy() -> bool:
+def bus_busy(base_addr: int = 0) -> bool:
     with osopen('/dev/mem', os.O_RDWR) as fd:
-        axi_iic_mm = mmap.mmap(fd, IIC_SIZE, offset=IIC_BASE_ADDR)
+        axi_iic_mm = mmap.mmap(fd, IIC_SIZE, offset=base_addr)
         axi_iic_registers = AxiIicRegister.from_buffer(axi_iic_mm)
         bus_busy = (axi_iic_registers.sr & IIC_BUS_BUSY) >> 2
     return bool(bus_busy)
