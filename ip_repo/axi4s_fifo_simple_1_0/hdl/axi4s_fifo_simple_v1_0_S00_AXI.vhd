@@ -128,7 +128,7 @@ architecture arch_imp of axi4s_fifo_simple_v1_0_S00_AXI is
 	signal fifo_rd_data  : std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
 	signal fifo_rd_valid : std_logic;
 	signal fifo_empty    : std_logic;
-	signal fifo_overflow_latch : std_logic;
+	signal fifo_overflow_latch    : std_logic;
 	
 begin
 	-- I/O Connections assignments
@@ -371,7 +371,7 @@ begin
 	        reg_data_out <= fifo_rd_data;
 	      when b"10" =>
 	        reg_data_out(0) <= fifo_overflow_latch;
-	        reg_data_out(C_S_AXI_DATA_WIDTH-1 downto 0) <= (others => '0');
+	        reg_data_out(C_S_AXI_DATA_WIDTH-1 downto 1) <= (others => '0');
 	      when b"11" =>
 	        reg_data_out <= x"C0FFEEEE";
 	      when others =>
@@ -430,7 +430,7 @@ begin
       if rising_edge(S_AXI_ACLK) then
         -- Address decoding for reading registers
 	    loc_addr := axi_araddr(ADDR_LSB + OPT_MEM_ADDR_BITS downto ADDR_LSB);
-        if axi_rvalid = '1' and loc_addr = "10" then -- overflow reg clear on read
+        if axi_rvalid = '1' and S_AXI_RREADY = '1' and loc_addr = "10" then -- overflow reg clear on read
            fifo_overflow_latch <= '0';
         end if;
       

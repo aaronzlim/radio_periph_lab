@@ -88,6 +88,11 @@ def set_volume(v: int):
     write_reg(CODEC_RIGHT_DAC_VOLUME_REG, v)
 
 
+def get_volume() -> int:
+    v = read_reg(CODEC_LEFT_DAC_VOLUME_REG)[0] & 0xFF
+    return round((v - 47) / 6)
+
+
 def configure_codec():
     write_reg(CODEC_SOFTWARE_RESET_REG, 0x00)
     sleep(0.001)

@@ -37,5 +37,3 @@ set_property -dict {PACKAGE_PIN N17 IOSTANDARD LVCMOS33} [get_ports IIC_0_sda_io
 
 #set_property -dict { PACKAGE_PIN W16   IOSTANDARD LVCMOS33 } [get_ports { UART_1_0_txd }]; #IO_L18N_T2_34 Sch=je[2]
 #set_property -dict { PACKAGE_PIN J15   IOSTANDARD LVCMOS33 } [get_ports { UART_1_0_rxd }]; #IO_25_35 Sch=je[3]
-
-

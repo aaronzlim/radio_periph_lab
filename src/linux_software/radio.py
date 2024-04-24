@@ -30,26 +30,32 @@ HELP_TEXT = """
 -- Author: Aaron Lim
 --
 -- Commands
---   tone   <freq_hz>    : Set the fake ADC to a frequency between 1
---                         Hz and 125_000_000 Hz.
---   u                   : Increase the tone frequency by 100 Hz.
---   U                   : Increase the tone frequency by 1000 Hz.
---   d                   : Decrease the tone frequency by 100 Hz.
---   D                   : Decrease the tone frequency by 1000 Hz.
---   tune   <freq_hz>    : Tune the radio to a frequency between 0 Hz
---                         and 62_500_000 Hz.
---   ip     <ipv4>       : Set the IP address for streaming. Defaults to
---                         127.0.0.1.
---   port   <port>       : Set the port number for streaming. Defaults to
---                         25344.
---   spp    <num>        : Number of samples per packet. Defaults to 256.
---   stream on | off     : Stream IQ data to the given IP and Port.
---                         Defaults to off.
---   reset  true | false : When true, holds the radio in reset.
---   timer               : Get the current hardware time
---                         (free running counter).
---   status              : Show status of radio registers and IQ stream.
---   exit                : Exit the program.
+--   tone   <freq_hz>         : Set the fake ADC to a frequency between 1
+--                              Hz and 125_000_000 Hz.
+--   u                        : Increase the tone frequency by 100 Hz.
+--   U                        : Increase the tone frequency by 1000 Hz.
+--   d                        : Decrease the tone frequency by 100 Hz.
+--   D                        : Decrease the tone frequency by 1000 Hz.
+--   tune   <freq_hz>         : Tune the radio to a frequency between 0 Hz
+--                              and 62_500_000 Hz.
+--   ip     <ipv4>            : Set the IP address for streaming. Defaults to
+--                              127.0.0.1.
+--   port   <port>            : Set the port number for streaming. Defaults to
+--                              25344.
+--   spp    <num>             : Number of samples per packet. Defaults to 256.
+--   stream on | off          : Stream IQ data to the given IP and Port.
+--                              Defaults to off.
+--   volume up | down | [0-9] : Change the DAC volume.
+--   reset  true | false      : When true, holds the radio in reset.
+--   timer                    : Get the current hardware time
+--                              (free running counter).
+--   status                   : Show status of radio registers and IQ stream.
+--                              Note the FIFO Overflow register clears on read.
+--   exit                     : Exit the program.
+--
+-- Note that if any of the streaming parameters change, the stream does not
+-- automatically update. You must turn off the stream and turn it back on
+-- for the new settings to take effect.
 -------------------------------------------------------------------------------
 """
 
@@ -159,6 +165,10 @@ def cmd_status() -> None:
         print(f'Reset              : {radio.reset}')
         print(f'Timer              : {radio.timer}')
 
+    with osopen('/dev/mem', os.O_RDWR) as fd:
+        fifo = mmap(fd, IQ_FIFO_SIZE, offset=IQ_FIFO_BASE_ADDR)
+        print(f'IQ FIFO Overflow   : {int.from_bytes(fifo[8:12], "little")}') # 3rd AXI4-L register
+
 
 def get_tone_freq() -> float:
     with osopen('/dev/mem', os.O_RDWR) as fd:
@@ -170,6 +180,18 @@ def get_tune_freq() -> float:
     with osopen('/dev/mem', os.O_RDWR) as fd:
         radio = RadioRegisters.from_buffer(mmap(fd, RADIO_SIZE, offset=RADIO_BASE_ADDR))
         return -1*((radio.ddc_phase_incr * CLOCK_RATE_HZ / 2**DDS_PHASE_WIDTH) - CLOCK_RATE_HZ)
+
+
+def cmd_volume_up() -> None:
+    v = codec.get_volume()
+    if v < 9:
+        codec.set_volume(v+1)
+
+
+def cmd_volume_down() -> None:
+    v = codec.get_volume()
+    if v > 0:
+        codec.set_volume(v-1)
 
 
 def ui():
@@ -263,6 +285,15 @@ def ui():
                     print('Stream terminated.')
             else:
                 print(f'Invalid stream command {arg}. Must be off or on.')
+        elif cmdl == 'volume':
+            if argl == 'up':
+                cmd_volume_up()
+            elif argl == 'down':
+                cmd_volume_down()
+            elif arg in [str(n) for n in range(10)]:
+                codec.set_volume(int(arg))
+            else:
+                print('Invalid volume argument. Must be up, down, or 0-9.')
         elif cmdl == 'reset':
             cmd_reset(argl)
         elif cmdl == 'timer':
