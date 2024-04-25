@@ -15,6 +15,8 @@ Generates a single complex sinusoid that gets mixed with an NCO, filtered, and d
 
 Design runs at 125 MHz and audio is delivered at 48.828125 kHz.
 
+IQ (Left/Right) samples are available via an AXI4-L FIFO. An example Python app is provided to read data from the FIFO and stream to a host in UDP packets.
+
 ## Directory Structure
 
 **ip_repo** : Packaged user IP
@@ -83,4 +85,4 @@ Various user software is provided in **src/linux_software/** that can be manuall
 
 test_radio.c is a test program provided by the course instructor.
 
-The Python files provide a Python API to interact with the audio codec and radio peripheral.
+The Python files provide a Python API to interact with the audio codec and radio peripheral. All Python files should be placed in the same directory.
