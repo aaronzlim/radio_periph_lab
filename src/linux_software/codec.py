@@ -10,6 +10,8 @@ import axi_iic as iic
 
 ENDIAN : str = "little"
 
+IIC_BASE_ADDR       : int = 0x4160_0000
+
 CODEC_DEV_ADDR      : int = 0x1A # 0b0001_1010
 
 CODEC_LEFT_ADC_VOLUME_REG    : int = 0x00
@@ -48,9 +50,9 @@ def int2bin(d: int, pad: int = 8):
 def write_reg(reg: int, val: int) -> None:
     """Write to a codec register via the AXI_IIC IP."""
     with osopen('/dev/mem', os.O_RDWR) as fd:
-        axi_iic_mm = mmap.mmap(fd, iic.IIC_SIZE, offset=iic.IIC_BASE_ADDR)
+        axi_iic_mm = mmap.mmap(fd, iic.IIC_SIZE, offset=IIC_BASE_ADDR)
         axi_iic_registers = iic.AxiIicRegister.from_buffer(axi_iic_mm)
-        while (not iic.tx_fifo_empty()) or iic.bus_busy():
+        while (not iic.tx_fifo_empty(IIC_BASE_ADDR)) or iic.bus_busy(IIC_BASE_ADDR):
             sleep(0.001)
         axi_iic_registers.tx_fifo = iic.IIC_DYNAMIC_START | (CODEC_DEV_ADDR << 1)
         axi_iic_registers.tx_fifo = (reg << 1) | (val >> 9)
@@ -60,18 +62,18 @@ def write_reg(reg: int, val: int) -> None:
 def read_reg(reg: int, num_bytes: int = 2) -> list:
     """Read from a codec register via the AXI_IIC IP."""
     with osopen('/dev/mem', os.O_RDWR) as fd:
-        axi_iic_mm = mmap.mmap(fd, iic.IIC_SIZE, offset=iic.IIC_BASE_ADDR)
+        axi_iic_mm = mmap.mmap(fd, iic.IIC_SIZE, offset=IIC_BASE_ADDR)
         axi_iic_registers = iic.AxiIicRegister.from_buffer(axi_iic_mm)
-        while not iic.tx_fifo_empty() or not iic.rx_fifo_empty() or iic.bus_busy():
+        while not iic.tx_fifo_empty(IIC_BASE_ADDR) or not iic.rx_fifo_empty(IIC_BASE_ADDR) or iic.bus_busy(IIC_BASE_ADDR):
             sleep(0.001)
         axi_iic_registers.tx_fifo = iic.IIC_DYNAMIC_START | (CODEC_DEV_ADDR <<1)
         axi_iic_registers.tx_fifo = (reg << 1)
         axi_iic_registers.tx_fifo = iic.IIC_DYNAMIC_START | (CODEC_DEV_ADDR <<1) | 0x1
         axi_iic_registers.tx_fifo = iic.IIC_DYNAMIC_STOP | num_bytes
-        while iic.rx_fifo_empty():
+        while iic.rx_fifo_empty(IIC_BASE_ADDR):
             sleep(0.001)
         rx_data = []
-        while not iic.rx_fifo_empty():
+        while not iic.rx_fifo_empty(IIC_BASE_ADDR):
             rx_data.append(axi_iic_registers.rx_fifo)
 
     return rx_data
@@ -84,6 +86,11 @@ def set_volume(v: int):
     v = v*6 + 47
     write_reg(CODEC_LEFT_DAC_VOLUME_REG, v)
     write_reg(CODEC_RIGHT_DAC_VOLUME_REG, v)
+
+
+def get_volume() -> int:
+    v = read_reg(CODEC_LEFT_DAC_VOLUME_REG)[0] & 0xFF
+    return round((v - 47) / 6)
 
 
 def configure_codec():
@@ -110,7 +117,7 @@ def dump():
 
 
 def main(args):
-    iic.axi_iic_init()
+    iic.axi_iic_init(IIC_BASE_ADDR)
 
     if args.init:
         configure_codec()
